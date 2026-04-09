@@ -1,12 +1,15 @@
-# This is an example configuration file
+# ProXam Exam Client — Konfigurationsdatei
 #
-# For more information please visit https://github.com/imedias/glados/blob/master/howtos/client-config.md
+# Wenn diese Datei vorhanden ist, wird der ProXam-Server direkt aus
+# der Konfiguration gelesen (kein mDNS-Scan).
+#
+# Für mehr Informationen: https://github.com/sl/proxam
 
 gladosIp="1.2.3.4"
-gladosHost="examsrv"
-gladosPort=80
-gladosProto="http"
-gladosDesc="Description"
+gladosHost="api.proxam.at"
+gladosPort=443
+gladosProto="https"
+gladosDesc="ProXam Prüfungsserver"
 
 actionDownload='glados/index.php/ticket/download/{token}'
 actionFinish='glados/index.php/ticket/finish/{token}'

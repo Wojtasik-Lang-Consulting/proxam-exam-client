@@ -1,3 +1,16 @@
+proxam-exam-client (1.0.0) trixie; urgency=medium
+
+  * Forked from lernstick-exam-client 1.0.20
+  * Renamed package to proxam-exam-client
+  * Updated server references from GLaDOS to ProXam
+  * mDNS: accept ProXam and Glados service advertisements
+  * Version check: lenient (warn instead of exit if /config/info missing)
+  * Added proxam-download-student-files script
+  * Monitoring services (keylogger, screenshot) on-demand via SSE events
+  * Updated firewall whitelist path to proxy.d/proxam.conf
+
+ -- ProXam <proxam@proxam.at>  Wed, 09 Apr 2026 00:00:00 +0100
+
 lernstick-exam-client (1.0.20) lernstick-9; urgency=medium
 
   * [086b04] added actionInfo for fixed configfile

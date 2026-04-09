@@ -1,22 +1,18 @@
-Source: lernstick-exam-client
+Source: proxam-exam-client
 Section: net
 Priority: optional
-Maintainer: Roman Gruber <roman.gruber@bwzofingen.ch>
+Maintainer: ProXam <proxam@proxam.at>
 Build-Depends: debhelper (>=9), config-package-dev, gettext
 Standards-Version: 3.9.6
-Homepage: <insert the upstream URL, if relevant>
-#Vcs-Git: git://anonscm.debian.org/collab-maint/lernstick-exam-client.git
-#Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/lernstick-exam-client.git
+Homepage: https://github.com/Wojtasik-Lang-Consulting/proxam-exam-client
 
-Package: lernstick-exam-client
+Package: proxam-exam-client
 Architecture: all
 Depends: wget,
     python3 (>= 3.6),
     zenity,
     coreutils,
     iptables,
-    gnome-icon-theme,
-    oxygen-icon-theme,
     ffmpeg,
     logkeys,
     screen,
@@ -27,4 +23,7 @@ Depends: wget,
     python3-requests
 Provides: ${diverted-files}
 Conflicts: ${diverted-files}
-Description: Client for the Lernstick exam server GLaDOS
+Description: ProXam Exam Client for Lernstick
+ Connects the Lernstick exam environment to the ProXam backend server.
+ Implements the GLaDOS-compatible protocol for exam download, state
+ reporting, student file transfer, and exam submission.

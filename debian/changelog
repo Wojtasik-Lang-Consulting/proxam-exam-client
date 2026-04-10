@@ -1,3 +1,10 @@
+proxam-exam-client (1.0.1) trixie; urgency=medium
+
+  * logkeys: demoted from Depends to Recommends (not in Debian Trixie)
+  * keylogger: exit gracefully with a warning when logkeys is not installed
+
+ -- ProXam <proxam@proxam.at>  Thu, 10 Apr 2026 00:00:00 +0100
+
 proxam-exam-client (1.0.0) trixie; urgency=medium
 
   * Forked from lernstick-exam-client 1.0.20

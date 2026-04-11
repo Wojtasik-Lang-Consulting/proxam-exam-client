@@ -9,8 +9,8 @@ proxam-exam-client (1.0.0) trixie; urgency=medium
 
   * Forked from lernstick-exam-client 1.0.20
   * Renamed package to proxam-exam-client
-  * Updated server references from GLaDOS to ProXam
-  * mDNS: accept ProXam and Glados service advertisements
+  * Updated server references to ProXam
+  * mDNS: accept ProXam service advertisements
   * Version check: lenient (warn instead of exit if /config/info missing)
   * Added proxam-download-student-files script
   * Monitoring services (keylogger, screenshot) on-demand via SSE events
@@ -38,7 +38,7 @@ lernstick-exam-client (1.0.19) lernstick-9; urgency=medium
   * [d575cd] simple i18n for the tray
   * [0ed99e] Started with python version of searchExamServer
   * [600ec9] towards finishing searchExamServer in python3
-  * [f3cb1e] check for glados info dict
+  * [f3cb1e] check for server info dict
   * [412b4c] zenity as a function
   * [9b5e80] sanitized shell commands
   * [90fb12] removed tkinter
@@ -194,7 +194,7 @@ lernstick-exam-client (1.0.12) lernstick-9; urgency=medium
   * [87e1f9] added screenshot service
   * [ecbdaa] correct chmod for screenshot
   * [30f949] chmod fixed
-  * [eadb28] mode 700 is needed that glados can read the files
+  * [eadb28] mode 700 is needed that the server can read the files
   * [230baf] Update lernstick-exam-agent
   * [a11d78] the service should retry after 10 seconds
   * [65f47a]  the service should retry after 10 seconds

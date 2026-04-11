@@ -42,8 +42,8 @@ lernstick_version_files = [
     '/run/live/rootfs/filesystem.squashfs/usr/local/lernstick.html'
 ]
 actions = ['Download', 'Finish', 'Notify', 'SSHKey', 'Md5', 'Config']
-glados_infos = ['gladosHost', 'gladosPort', 'gladosIp', 'gladosDesc', 'gladosProto']
-variables = glados_infos + ['action'+i for i in actions]
+server_keys = ['serverHost', 'serverPort', 'serverIp', 'serverDesc', 'serverProto']
+variables = server_keys + ['action'+i for i in actions]
 
 # translations
 messages = {
@@ -75,14 +75,14 @@ messages = {
         "Exam Client": "Prüfungsclient",
         "Taking ProXam server from configuration file.": "Nehme ProXam Server Informationen von der Konfigurationsdatei.",
         "Continue": "Fortfahren",
-        "An exam server was found in the configuration file (via {interface}):\n\n    Desciption: {gladosDesc}\n    Hostname: {gladosHost}\n    IP: {gladosIp}\n\nSwitch to exam mode?": "Ein Prüfungsserver wurde in der Konfigurationdatei gefunden (via {interface}):\n\n    Beschreibung: {gladosDesc}\n    Hostname: {gladosHost}\n    IP: {gladosIp}\n\nIn den Prüfungsmodus wechseln?",
+        "An exam server was found in the configuration file (via {interface}):\n\n    Desciption: {serverDesc}\n    Hostname: {serverHost}\n    IP: {serverIp}\n\nSwitch to exam mode?": "Ein Prüfungsserver wurde in der Konfigurationdatei gefunden (via {interface}):\n\n    Beschreibung: {serverDesc}\n    Hostname: {serverHost}\n    IP: {serverIp}\n\nIn den Prüfungsmodus wechseln?",
         "Error": "Fehler",
         "Failed to fetch the SSH key from ProXam server.": "Abrufen des SSH Schlüssels fehlgeschlagen.",
         "Cannot obtain current Lernstick version.": "Aktuelle Lernstick Version kann nicht ermittelt werden.",
         "Cannot open compatibility file {path}": "Kompatibilitätsdatei {path} kann nicht geöffnet werden",
         "Unable to fetch ProXam server version information. Skipping version check.": "ProXam Server Informationen können nicht abgerufen werden. Versionscheck wird übersprungen.",
         "Variable {var} not given in configuration file {file}. Please add this variable to the configuration file.": "Die Variable {var} is nicht in der Konfigurationdatei {file}. Bitte fügen Sie die Variable zur Konfigurationdatei hinzu.",
-        "The ProXam server ({gladosDesc}, {gladosHost}, {gladosIp}) configured in the configuration file {file} is not reachable via your network connection(s). Aborting.": "Der ProXam Server ({gladosDesc}, {gladosHost}, {gladosIp}) aus der Konfigurationdatei {file} kann nicht über eine Ihrer Netzwerkverbindungen erreicht werden. Breche ab.",
+        "The ProXam server ({serverDesc}, {serverHost}, {serverIp}) configured in the configuration file {file} is not reachable via your network connection(s). Aborting.": "Der ProXam Server ({serverDesc}, {serverHost}, {serverIp}) aus der Konfigurationdatei {file} kann nicht über eine Ihrer Netzwerkverbindungen erreicht werden. Breche ab.",
         "Choice is invalid.": "Die Wahl is ungültig.",
         "ProXam server not found.": "ProXam Server nicht gefunden."
     }
@@ -208,9 +208,9 @@ def clean_exit(reason = None, exit_code = 0):
     helpers.run('iptables-save | grep -v "searchExamServer" | iptables-restore -w')
     helpers.run('iptables-legacy-save | grep -v "searchExamServer" | iptables-legacy-restore -w')
 
-    # remove the glados entries in firewall whitelist
-    if 'glados' in globals() and 'gladosProto' in glados and 'gladosHost' in glados:
-        line = '^{gladosProto}://{gladosHost}'.format(**glados)
+    # remove the proxam entries in firewall whitelist
+    if 'proxam' in globals() and 'serverProto' in proxam and 'serverHost' in proxam:
+        line = '^{serverProto}://{serverHost}'.format(**proxam)
         line = line.replace(".", "\.") if isDeb9OrNewer() else line
         for urlWhitelistFile in urlWhitelistFiles:
             remove_line_from_file(urlWhitelistFile, line)
@@ -218,8 +218,8 @@ def clean_exit(reason = None, exit_code = 0):
     helpers.run('umount /run/initramfs/newroot || true')
     helpers.run('umount -l /run/initramfs/{base,exam} || true')
 
-    if 'glados' in globals() and 'sshKey' in glados:
-        remove_line_from_file('/root/.ssh/authorized_keys', glados['sshKey'])
+    if 'proxam' in globals() and 'sshKey' in proxam:
+        remove_line_from_file('/root/.ssh/authorized_keys', proxam['sshKey'])
 
     if isDeb9OrNewer(): helpers.run('squid -k reconfigure') # iptables stays
 
@@ -374,16 +374,16 @@ def get_client_version():
 
 # get server information
 def get_server_version():
-    r = http_get(glados['actionInfo'])
+    r = http_get(proxam['actionInfo'])
     if r.status_code != 200:
         logger.warning(t("Unable to fetch ProXam server version information. Skipping version check."))
         return None
     return r.json()
 
 def get_ssh_key():
-    r = http_get(glados['actionSSHKey'])
+    r = http_get(proxam['actionSSHKey'])
     if r.status_code != 200:
-        exit_with_error_message(t("Failed to fetch the SSH key from Glados server."))
+        exit_with_error_message(t("Failed to fetch the SSH key from ProXam server."))
 
     return r.content.decode("utf-8") 
 
@@ -455,8 +455,8 @@ if __name__ == '__main__':
     logger.info('-'*40)
     logger.info(f'Script launched with arguments: {sys.argv}')
 
-    glados = {}
-    glados_shell = {}
+    proxam = {}
+    proxam_shell = {}
 
     env = {
         'DISPLAY': helpers.get_env("DISPLAY"),
@@ -494,9 +494,9 @@ if __name__ == '__main__':
     if os.path.exists(retoreStateFile): os.remove(retoreStateFile)
 
     if os.path.isfile(infoFile) and os.access(infoFile, os.R_OK):
-        glados = getVariablesFromFile(infoFile)
-        glados_shell = sanitize(glados)
-        logger.debug(f'Using ProXam server information from previous run (file {infoFile}):\n: {json.dumps(glados, indent = 4)}')
+        proxam = getVariablesFromFile(infoFile)
+        proxam_shell = sanitize(proxam)
+        logger.debug(f'Using ProXam server information from previous run (file {infoFile}):\n: {json.dumps(proxam, indent = 4)}')
 
     # if a configfile is used, don't display a selection list and use the config values instead
     if os.path.isfile(args.configFile) and os.access(args.configFile, os.R_OK):
@@ -511,33 +511,33 @@ if __name__ == '__main__':
 
         logger.debug(f"args.configFile found, using {args.configFile}.")
 
-        glados_config = getVariablesFromFile(args.configFile)
+        server_config = getVariablesFromFile(args.configFile)
         for var in variables:
-            if not var in glados_config or glados_config[var] == '':
+            if not var in server_config or server_config[var] == '':
                 exit_with_error_message(t("Variable {var} not given in configuration file {file}. Please add this variable to the configuration file.",
                     var = var,
                     file = args.configFile
                 ))
-        del glados_config
+        del server_config
 
-        glados = getVariablesFromFile(args.configFile, glados)
-        glados_shell = sanitize(glados)
+        proxam = getVariablesFromFile(args.configFile, proxam)
+        proxam_shell = sanitize(proxam)
 
         for action in actions:
-            glados[f"action{action}"] = "{gladosProto}://{gladosHost}:{gladosPort}/{0}".format(glados[f"action{action}"], **glados)
+            proxam[f"action{action}"] = "{serverProto}://{serverHost}:{serverPort}/{0}".format(proxam[f"action{action}"], **proxam)
 
         # get the info URL manually
-        glados["actionInfo"] = glados["actionSSHKey"].replace('/ticket/ssh-key', '/config/info')
+        proxam["actionInfo"] = proxam["actionSSHKey"].replace('/ticket/ssh-key', '/config/info')
 
-        # check if there is a route to the ip addess of glados
-        retval, glados['interface'] = helpers.run("ip -s route get {gladosIp} | perl -ne 'print $1 if /dev[\s]+([^\s]+)/'".format(**glados_shell))
+        # check if there is a route to the ip address of ProXam server
+        retval, proxam['interface'] = helpers.run("ip -s route get {serverIp} | perl -ne 'print $1 if /dev[\s]+([^\s]+)/'".format(**proxam_shell))
 
-        glados_shell = sanitize(glados)
+        proxam_shell = sanitize(proxam)
 
-        logger.debug(f"Using ProXam server information from config file {args.configFile}:\n{json.dumps(glados, indent = 4)}")
+        logger.debug(f"Using ProXam server information from config file {args.configFile}:\n{json.dumps(proxam, indent = 4)}")
 
         if retval is False:
-            exit_with_error_message(t("The ProXam server ({gladosDesc}, {gladosHost}, {gladosIp}) configured in the configuration file {file} is not reachable via your network connection(s). Aborting.", file = args.configFile, **glados), width = 500)
+            exit_with_error_message(t("The ProXam server ({serverDesc}, {serverHost}, {serverIp}) configured in the configuration file {file} is not reachable via your network connection(s). Aborting.", file = args.configFile, **proxam), width = 500)
 
         # ending subprocess
         # dont end here, end there https://github.com/Lernstick/lernstick-exam-client/blob/master/usr/bin/searchExamServer#L312
@@ -600,31 +600,31 @@ if __name__ == '__main__':
                     line = line.rstrip().decode("utf-8") + '\n'
                     pieces = line.split(';')
                     if len(pieces) >= 10:
-                        if pieces[0] == '=' and pieces[2] == 'IPv4' and ('ProXam' in pieces[9] or 'Glados' in pieces[9]):
+                        if pieces[0] == '=' and pieces[2] == 'IPv4' and ('ProXam' in pieces[9]):
 
                             entries[n] = {}
-                            entries[n]['gladosDesc'] = decimals_to_hex(pieces[3])
-                            entries[n]['gladosIp'] = pieces[7]
-                            entries[n]['gladosHost'] = pieces[6]
-                            entries[n]['gladosPort'] = int(pieces[8])
-                            entries[n]['gladosProto'] = 'https' if pieces[4] == '_https._tcp' else 'http'
+                            entries[n]['serverDesc'] = decimals_to_hex(pieces[3])
+                            entries[n]['serverIp'] = pieces[7]
+                            entries[n]['serverHost'] = pieces[6]
+                            entries[n]['serverPort'] = int(pieces[8])
+                            entries[n]['serverProto'] = 'https' if pieces[4] == '_https._tcp' else 'http'
                             entries[n]['interface'] = pieces[1]
 
                             # parse the action URLs and skip if we miss some
                             for action in actions:
                                 res = re.search(f"action{action}='([^\']+)'", pieces[9])
                                 if res:
-                                    entries[n][f"action{action}"] = "{gladosProto}://{gladosHost}:{gladosPort}/{0}".format(res.group(1), **entries[n])
+                                    entries[n][f"action{action}"] = "{serverProto}://{serverHost}:{serverPort}/{0}".format(res.group(1), **entries[n])
                                 else:
-                                    logger.debug("Skipping invalid ProXam DNS-entry for {gladosIp}:{gladosPort}".format(**entries[n]))
+                                    logger.debug("Skipping invalid ProXam DNS-entry for {serverIp}:{serverPort}".format(**entries[n]))
                                     continue
 
                             # get the info URL manually
                             entries[n]["actionInfo"] = entries[n]["actionSSHKey"].replace('/ticket/ssh-key', '/config/info')
 
-                            output_line = '{0}\n{gladosDesc}\n{gladosIp}\n{gladosHost}\n{gladosPort}\n{gladosProto}\n{interface}\n'.format(n, **entries[n])
+                            output_line = '{0}\n{serverDesc}\n{serverIp}\n{serverHost}\n{serverPort}\n{serverProto}\n{interface}\n'.format(n, **entries[n])
 
-                            logger.info("Found ProXam server #{0} via DNS: ip:{gladosIp}, hostname:{gladosHost}, desc:{gladosDesc}".format(n, **entries[n]))
+                            logger.info("Found ProXam server #{0} via DNS: ip:{serverIp}, hostname:{serverHost}, desc:{serverDesc}".format(n, **entries[n]))
                             output_line = decimals_to_hex(output_line)
                             zenity_process.stdin.write(str.encode(output_line))
                             zenity_process.stdin.flush()
@@ -634,21 +634,21 @@ if __name__ == '__main__':
             choice = int(zenity_output) if zenity_output != '' else False
 
         if choice in entries:
-            glados = {**glados, **entries[choice]} # merge the args, where the second has priority
-            glados_shell = sanitize(glados)
+            proxam = {**proxam, **entries[choice]} # merge the args, where the second has priority
+            proxam_shell = sanitize(proxam)
             logger.info(f"User selected ProXam server #{choice}")
             logger.info(f"Using ProXam server information obtained from DNS entry #{choice}")
         else:
             exit_with_error_message(t('Choice is invalid.'))
 
-    if (not 'gladosHost' in glados) or (not 'gladosPort' in glados):
+    if (not 'serverHost' in proxam) or (not 'serverPort' in proxam):
         exit_with_error_message(t('ProXam server not found.'))
 
-    # append the hostname and IP of glados to the /etc/hosts file, such that in the exam,
+    # append the hostname and IP of the ProXam server to the /etc/hosts file, such that in the exam,
     # the server IP can be resolved without having a proper DNS service in the network.
     shutil.copy('/etc/hosts', '/var/lib/lernstick-exam-client/persistent/etc/hosts')
     file_put_contents('/var/lib/lernstick-exam-client/persistent/etc/hosts',
-        f"{glados['gladosIp']}     {glados['gladosHost']}\n", append = True)
+        f"{proxam['serverIp']}     {proxam['serverHost']}\n", append = True)
 
     logger.info("ProXam server found")
 
@@ -663,7 +663,7 @@ if __name__ == '__main__':
                 question = True,
                 width = 400,
                 title = t("Continue"),
-                text = t("An exam server was found in the configuration file (via {interface}):\n\n    Desciption: {gladosDesc}\n    Hostname: {gladosHost}\n    IP: {gladosIp}\n\nSwitch to exam mode?", **glados_shell)
+                text = t("An exam server was found in the configuration file (via {interface}):\n\n    Desciption: {serverDesc}\n    Hostname: {serverHost}\n    IP: {serverIp}\n\nSwitch to exam mode?", **proxam_shell)
         ), env = env)[0]:
             clean_exit("User aborted before switching to exam mode.")
     else:
@@ -672,7 +672,7 @@ if __name__ == '__main__':
         avahi_process.stdin.close()
         avahi_process.terminate()
 
-    logger.debug(f"Full obtained ProXam server information:\n{json.dumps(glados, indent = 4)}")
+    logger.debug(f"Full obtained ProXam server information:\n{json.dumps(proxam, indent = 4)}")
 
     # starting new zenity subprocess
     cmd = zenity(width = 300, progress = True, pulsate = True, no_cancel = True, auto_close = True,
@@ -684,7 +684,7 @@ if __name__ == '__main__':
     zenity_send(zenity_process, t('Configuring firewall'))
 
     # configuring firewall
-    line = '^{gladosProto}://{gladosHost}\n'.format(**glados)
+    line = '^{serverProto}://{serverHost}\n'.format(**proxam)
     if isDeb9OrNewer(): line = line.replace(".", "\.")
 
     for urlWhitelistFile in urlWhitelistFiles:
@@ -694,16 +694,16 @@ if __name__ == '__main__':
 
     helpers.run('service lernstick-firewall restart')
     if isDeb9OrNewer(): helpers.run('squid -k reconfigure')
-    helpers.run('iptables -I INPUT -p tcp --dport 22 -s {gladosIp} -m comment --comment "searchExamServer" -j ACCEPT'.format(**glados_shell))
-    helpers.run('iptables -I OUTPUT -p tcp --dport {gladosPort} -d {gladosIp} -m comment --comment "searchExamServer" -j ACCEPT'.format(**glados_shell))
+    helpers.run('iptables -I INPUT -p tcp --dport 22 -s {serverIp} -m comment --comment "searchExamServer" -j ACCEPT'.format(**proxam_shell))
+    helpers.run('iptables -I OUTPUT -p tcp --dport {serverPort} -d {serverIp} -m comment --comment "searchExamServer" -j ACCEPT'.format(**proxam_shell))
 
     # this sleep is needed, else the http request would fail (network error)
     time.sleep(1)
 
     logger.debug("Fetching SSH key ...")
     zenity_send(zenity_process, t('Fetching SSH key'))
-    glados['sshKey'] = get_ssh_key()
-    glados_shell = sanitize(glados)
+    proxam['sshKey'] = get_ssh_key()
+    proxam_shell = sanitize(proxam)
 
     logger.debug("Fetching Client information ...")
     client = get_client_version()
@@ -740,27 +740,27 @@ if __name__ == '__main__':
 
     # create environment
     os.makedirs('/root/.ssh', mode = 700, exist_ok = True)
-    file_put_contents('/root/.ssh/authorized_keys', glados['sshKey'], append = True)
+    file_put_contents('/root/.ssh/authorized_keys', proxam['sshKey'], append = True)
     unique_lines('/root/.ssh/authorized_keys')
 
     # The or fixes the newest debian9 version
-    _, glados['partitionSystem'] = helpers.run("blkid -l -L system || echo /dev/sr0")
-    glados_shell = sanitize(glados)
+    _, proxam['partitionSystem'] = helpers.run("blkid -l -L system || echo /dev/sr0")
+    proxam_shell = sanitize(proxam)
 
     # write the info file
     contents = ''
     for variable in variables + ['partitionSystem', 'sshKey']:
-        contents += '{0}={1}\n'.format(variable, glados_shell[variable])
+        contents += '{0}={1}\n'.format(variable, proxam_shell[variable])
     file_put_contents(infoFile, contents)
 
     # remount /run without noexec (Debian 9 changed this, /run/initramfs/shutdown will not be executed elsewhere)
     ret, output = helpers.run("mount -n -o remount,exec /run")
 
-    url = glados['actionDownload'].format(token = glados['token'] if 'token' in glados else '')
+    url = proxam['actionDownload'].format(token = proxam['token'] if 'token' in proxam else '')
 
     # Download approved student files (if any) before entering exam
     zenity_send(zenity_process, t('Downloading student files'))
-    token_arg = glados['token'] if 'token' in glados else ''
+    token_arg = proxam['token'] if 'token' in proxam else ''
     helpers.run(f'/usr/bin/proxam-download-student-files {token_arg}')
 
     # finish the zenity processes

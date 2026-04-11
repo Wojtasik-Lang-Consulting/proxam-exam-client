@@ -5,7 +5,7 @@ zenityOptions="--width=300"
 
 [ -r "/info" ] && . /info
 
-if [ -z "${urlFinish}" ]; then
+if [ -z "${actionFinish}" ]; then
     ${zenity} ${zenityOptions} --error --title "Error" --text "Error: info file not present."
     exit 1
 fi
@@ -15,4 +15,4 @@ fi
     -n "Hand-in exam" --class "hand-in-exam" \
     -i "/usr/share/icons/gnome/256x256/actions/system-log-out.png" \
     -s "/usr/bin/poll_open_windows.py" 1 \
-    "${urlFinish}"
+    "${actionFinish}"

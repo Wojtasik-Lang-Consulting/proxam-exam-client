@@ -48,7 +48,7 @@ messages = {
         'There was no backup since the system has started. Please contact your supervisor.': 'Kein Backup seit das System gestartet wurde. Bitte wenden Sie sich an Ihre Prüfungsaufsicht.',
         'There was no backup since {0} minutes. Please contact your supervisor.': 'Kein Backup seit {0} Minuten. Bitte wenden Sie sich an Ihre Prüfungsaufsicht.',
         'The network connection could not be established': 'Die Netzwerkverbindung konnte nicht hergestellt werden',
-        'The GLaDOS-server is not reachable. Please contact your supervisor.': 'Der GLaDOS-server ist nicht erreichbar. Bitte wenden Sie sich an Ihre Prüfungsaufsicht.',
+        'The ProXam server is not reachable. Please contact your supervisor.': 'Der ProXam-Server ist nicht erreichbar. Bitte wenden Sie sich an Ihre Prüfungsaufsicht.',
         'Error': 'Fehler',
         'Info': 'Info'
     }
@@ -321,7 +321,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
             self.state['NETWORK_OK'] = True
             return True
         else:
-            msg = _('The GLaDOS-server is not reachable. Please contact your supervisor.')
+            msg = _('The ProXam server is not reachable. Please contact your supervisor.')
             self.systemNotification('error', msg)
             self.state['NETWORK_OK'] = False
             return False

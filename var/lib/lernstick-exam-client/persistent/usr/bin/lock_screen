@@ -9,7 +9,7 @@ directory = "/var/lib/lernstick-exam-client/"
 sys.path.append(directory)
 import functions as helpers # get_env(), run()
 
-INFO_FILE_URL = 'urlDownload'
+INFO_FILE_URL = 'actionDownload'
 PID_FILE = '/run/lock/lernstick-exam-lock.pid'
 
 if __name__ == '__main__':

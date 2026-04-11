@@ -25,5 +25,5 @@ Provides: ${diverted-files}
 Conflicts: ${diverted-files}
 Description: ProXam Exam Client for Lernstick
  Connects the Lernstick exam environment to the ProXam backend server.
- Implements the GLaDOS-compatible protocol for exam download, state
+ Implements the ProXam protocol for exam download, state
  reporting, student file transfer, and exam submission.

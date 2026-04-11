@@ -58,7 +58,7 @@ if __name__ == '__main__':
     }
 
     cenv = {**env, **{'LC_ALL': 'C'}} 
-    urlNotify = helpers.get_info("urlNotify", infoFile)
+    urlNotify = helpers.get_info("actionNotify", infoFile)
 
     if args.debug:
         zcmd = helpers.zenity(**{

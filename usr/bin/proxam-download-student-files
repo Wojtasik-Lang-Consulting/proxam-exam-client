@@ -8,9 +8,9 @@ sie in /run/initramfs/student-files/ ab, damit sie im Exam-Environment
 verfügbar sind.
 
 Endpoints (ProXam-Backend):
-  GET /glados/index.php/ticket/student-files/{token}
+  GET /proxam/ticket/student-files/{token}
       → [{ id, filename, size, downloadUrl }]
-  GET /glados/index.php/ticket/student-files/{token}/{fileId}
+  GET /proxam/ticket/student-files/{token}/{fileId}
       → Datei-Download
 
 Aufruf:
@@ -57,9 +57,9 @@ def setup_logging():
     return logger
 
 def build_base_url():
-    proto = get_info('gladosProto') or 'https'
-    host  = get_info('gladosHost')
-    port  = get_info('gladosPort')
+    proto = get_info('serverProto') or 'https'
+    host  = get_info('serverHost')
+    port  = get_info('serverPort')
     if not host:
         return None
     if port and port not in ('80', '443'):
@@ -67,7 +67,7 @@ def build_base_url():
     return f"{proto}://{host}"
 
 def fetch_file_list(base_url, token, session):
-    url = f"{base_url}/glados/index.php/ticket/student-files/{token}"
+    url = f"{base_url}/proxam/ticket/student-files/{token}"
     try:
         r = session.get(url, timeout=15)
         if r.status_code == 404:
@@ -82,7 +82,7 @@ def fetch_file_list(base_url, token, session):
         return []
 
 def download_file(base_url, token, file_id, filename, dest_dir, session):
-    url = f"{base_url}/glados/index.php/ticket/student-files/{token}/{file_id}"
+    url = f"{base_url}/proxam/ticket/student-files/{token}/{file_id}"
     dest = dest_dir / filename
     try:
         with session.get(url, stream=True, timeout=60) as r:

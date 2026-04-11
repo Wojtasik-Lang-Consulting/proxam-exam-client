@@ -7,13 +7,13 @@ CONFIG_FILE="/etc/lernstickWelcome"
 function clientState()
 {
   echo "$1"
-  ${wget} -qO- "${urlNotify//\{state\}/$1}" 2>&1 >/dev/null
+  ${wget} -qO- "${actionNotify//\{state\}/$1}" 2>&1 >/dev/null
   ret=$?
 
   # try until the server is reachable
   while [ "${ret}" -ne "0" ]; do
     sleep 5
-    ${wget} -qO- "${urlNotify//\{state\}/$1}" 2>&1 >/dev/null
+    ${wget} -qO- "${actionNotify//\{state\}/$1}" 2>&1 >/dev/null
     ret=$?
   done
 }

@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+"""Live screen streaming agent — streams ffmpeg MJPEG over WebSocket."""
+
+import sys
+import os
+import subprocess
+import signal
+import time
+import json
+import logging
+
+directory = "/var/lib/lernstick-exam-client/"
+sys.path.append(directory)
+import functions as helpers
+
+try:
+    from websocket import WebSocket, ABNF
+except ImportError:
+    print("websocket-client not installed, falling back to pip", file=sys.stderr)
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'websocket-client'])
+    from websocket import WebSocket, ABNF
+
+LOG_LEVEL = logging.INFO
+DEFAULT_FPS = 10
+DEFAULT_WIDTH = 640
+DEFAULT_QUALITY = 5   # mjpeg quality: 2=best, 31=worst
+WINDOW_POLL_FRAMES = 20  # check window name every N frames
+RECONNECT_DELAY = 5   # seconds
+
+logger = logging.getLogger("live_stream")
+running = True
+ffmpeg_proc = None
+
+
+def signal_handler(sig, frame):
+    global running
+    running = False
+    if ffmpeg_proc:
+        ffmpeg_proc.terminate()
+
+
+def read_jpeg_frames(pipe):
+    """Read complete JPEG frames from an ffmpeg image2pipe output.
+
+    JPEG frames are delimited by SOI (0xFFD8) and EOI (0xFFD9) markers.
+    Within entropy-coded data 0xFF is always followed by 0x00 (byte stuffing),
+    so 0xFFD9 can only appear as the real end-of-image marker.
+    """
+    buf = bytearray()
+    while running:
+        chunk = pipe.read(8192)
+        if not chunk:
+            break
+        buf.extend(chunk)
+        while True:
+            start = buf.find(b'\xff\xd8')
+            if start == -1:
+                buf.clear()
+                break
+            end = buf.find(b'\xff\xd9', start + 2)
+            if end == -1:
+                if start > 0:
+                    del buf[:start]
+                break
+            yield bytes(buf[start:end + 2])
+            del buf[:end + 2]
+
+
+def start_ffmpeg(display, fps, width, quality):
+    """Start ffmpeg x11grab → MJPEG pipe process."""
+    global ffmpeg_proc
+    if ffmpeg_proc:
+        ffmpeg_proc.terminate()
+        try:
+            ffmpeg_proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            ffmpeg_proc.kill()
+
+    cmd = [
+        'ffmpeg', '-nostdin',
+        '-f', 'x11grab',
+        '-framerate', str(fps),
+        '-i', display,
+        '-vf', 'scale={}:-1'.format(width),
+        '-f', 'image2pipe',
+        '-vcodec', 'mjpeg',
+        '-q:v', str(quality),
+        '-an',
+        'pipe:1'
+    ]
+    logger.info("starting ffmpeg: %s", ' '.join(cmd))
+    ffmpeg_proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        env=dict(os.environ, DISPLAY=display)
+    )
+    return ffmpeg_proc
+
+
+if __name__ == '__main__':
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    logger.setLevel(LOG_LEVEL)
+    ch = logging.StreamHandler()
+    ch.setFormatter(helpers.TerminalColorFormatter())
+    logger.addHandler(ch)
+
+    # Get server URL from config
+    url = helpers.get_info('actionDownload')
+    if not url:
+        logger.critical('actionDownload not found in config')
+        sys.exit(1)
+
+    # /proxam/ticket/download/{token} → ws://host/proxam/ticket/stream/{token}
+    ws_url = url.replace('download', 'stream', 1)
+    ws_url = ws_url.replace('http://', 'ws://').replace('https://', 'wss://')
+
+    display = helpers.get_env("DISPLAY") or ":0"
+    env = {
+        'DISPLAY': display,
+        'XAUTHORITY': helpers.get_env("XAUTHORITY") or ""
+    }
+
+    fps = DEFAULT_FPS
+    width = DEFAULT_WIDTH
+    quality = DEFAULT_QUALITY
+
+    while running:
+        ws = None
+        try:
+            logger.info("connecting to %s", ws_url)
+            ws = WebSocket()
+            ws.settimeout(10)
+            ws.connect(ws_url)
+            ws.settimeout(None)
+            logger.info("connected")
+
+            # Start ffmpeg capture
+            proc = start_ffmpeg(display, fps, width, quality)
+
+            frame_count = 0
+            last_window = None
+
+            for frame in read_jpeg_frames(proc.stdout):
+                if not running:
+                    break
+
+                # Send JPEG frame as binary
+                try:
+                    ws.send(frame, ABNF.OPCODE_BINARY)
+                except Exception:
+                    logger.warning("send failed, reconnecting")
+                    break
+
+                frame_count += 1
+
+                # Periodically send active window name
+                if frame_count % WINDOW_POLL_FRAMES == 0:
+                    try:
+                        ok, name = helpers.run(
+                            'xdotool getactivewindow getwindowname', env=env
+                        )
+                        if ok and name and name != last_window:
+                            last_window = name
+                            ws.send(json.dumps({'window': name}))
+                    except Exception:
+                        pass
+
+                # Check for control messages (non-blocking)
+                try:
+                    ws.settimeout(0)
+                    msg = ws.recv()
+                    ws.settimeout(None)
+                    if msg:
+                        data = json.loads(msg)
+                        logger.info("control message: %s", data)
+                        changed = False
+                        if 'fps' in data and data['fps'] != fps:
+                            fps = data['fps']
+                            changed = True
+                        if 'width' in data and data['width'] != width:
+                            width = data['width']
+                            changed = True
+                        if 'quality' in data and data['quality'] != quality:
+                            quality = data['quality']
+                            changed = True
+                        if changed:
+                            proc = start_ffmpeg(display, fps, width, quality)
+                except Exception:
+                    ws.settimeout(None)
+
+        except Exception as e:
+            logger.warning("connection failed: %s", e)
+
+        finally:
+            if ffmpeg_proc:
+                ffmpeg_proc.terminate()
+                try:
+                    ffmpeg_proc.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    ffmpeg_proc.kill()
+                ffmpeg_proc = None
+            if ws:
+                try:
+                    ws.close()
+                except Exception:
+                    pass
+
+        if running:
+            logger.info("reconnecting in %ds", RECONNECT_DELAY)
+            time.sleep(RECONNECT_DELAY)
+
+    logger.info("stopped")

@@ -1,0 +1,9 @@
+[Unit]
+Description=ProXam live screen stream (ffmpeg WebSocket)
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/live_stream
+
+[Install]
+WantedBy=graphical.target

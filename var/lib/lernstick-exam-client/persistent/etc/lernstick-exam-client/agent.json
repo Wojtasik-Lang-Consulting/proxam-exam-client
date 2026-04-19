@@ -2,6 +2,16 @@
     "listen": [
         {
             "event": "agent/*",
+            "data": "startStream",
+            "command": "service live_stream start"
+        },
+        {
+            "event": "agent/*",
+            "data": "stopStream",
+            "command": "service live_stream stop"
+        },
+        {
+            "event": "agent/*",
             "data": "startLive",
             "command": "service live_overview start"
         },
